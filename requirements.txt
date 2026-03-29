@@ -1,3 +1,5 @@
+setuptools==65.5.0
+wheel
 flask==2.2.5
 werkzeug==2.2.3
 mysql-connector-python==8.2.0
