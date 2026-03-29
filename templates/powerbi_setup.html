@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — Power BI Setup{% endblock %}
+{% block extra_head %}
+<style>
+.setup-page { max-width:880px; margin:0 auto; padding:2.5rem 2rem 5rem; }
+
+.setup-hero {
+  background: linear-gradient(140deg, #0e1f5a 0%, #1a3a9c 50%, #2563eb 100%);
+  border-radius:16px; padding:2.5rem 3rem; margin-bottom:2rem;
+  position:relative; overflow:hidden;
+}
+.setup-hero::after {
+  content:'📊'; position:absolute; right:2.5rem; top:50%; transform:translateY(-50%);
+  font-size:5rem; opacity:.12;
+}
+.setup-hero h1 { font-family:var(--font-serif); font-size:2rem; color:#fff; margin-bottom:.4rem; }
+.setup-hero p  { color:rgba(255,255,255,.72); font-size:.95rem; max-width:500px; }
+
+/* Options */
+.options-row { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:2rem; }
+.opt-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.5rem; }
+.opt-card h3 { font-size:.95rem; margin-bottom:.5rem; display:flex; align-items:center; gap:.5rem; }
+.opt-card p  { color:var(--muted); font-size:.85rem; line-height:1.65; }
+.opt-code { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:.7rem 1rem; margin-top:.8rem; font-family:monospace; font-size:.8rem; color:#c9d1d9; }
+.badge { font-size:.7rem; padding:.2rem .55rem; border-radius:20px; font-weight:600; vertical-align:middle; }
+.badge-easy { background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.3); }
+.badge-live { background:rgba(37,99,235,.15); color:#60a5fa; border:1px solid rgba(37,99,235,.3); }
+
+/* Steps */
+.steps-list { display:flex; flex-direction:column; gap:1rem; margin-bottom:2rem; }
+.step {
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:1.3rem 1.5rem; display:flex; gap:1.2rem; align-items:flex-start;
+}
+.step-num {
+  min-width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff;
+  font-weight:700; font-size:.86rem; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+}
+.step h3 { font-size:.92rem; margin-bottom:.3rem; }
+.step p  { color:var(--muted); font-size:.85rem; line-height:1.65; }
+.step code {
+  background:var(--surface2); border:1px solid var(--border);
+  padding:.12rem .45rem; border-radius:4px; font-size:.8rem; font-family:monospace; color:#c9d1d9;
+}
+
+/* URL form card */
+.url-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:2rem; margin-bottom:1.5rem; }
+.url-card h2 { font-family:var(--font-serif); font-size:1.35rem; margin-bottom:.35rem; }
+.url-card .subtitle { color:var(--muted); font-size:.86rem; margin-bottom:1.4rem; }
+.url-card .subtitle code { background:var(--surface2); border:1px solid var(--border); padding:.1rem .4rem; border-radius:4px; font-size:.8rem; }
+.url-input-row { display:flex; gap:.8rem; align-items:flex-end; }
+.url-input-row .form-group { flex:1; margin-bottom:0; }
+.url-current {
+  margin-top:1rem; padding:.9rem 1.1rem;
+  background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+  font-size:.8rem; color:var(--muted); word-break:break-all; line-height:1.6;
+}
+.url-current .ok { color:var(--green); font-weight:600; }
+
+/* Chart reference */
+.pbi-charts-ref { margin-bottom:2rem; }
+.pbi-charts-ref h3 { font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem; }
+.chart-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; }
+.chart-item {
+  background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:1rem; text-align:center;
+}
+.chart-item .ci-icon { font-size:1.5rem; margin-bottom:.4rem; }
+.chart-item .ci-type { font-size:.75rem; color:var(--accent); font-weight:600; }
+.chart-item .ci-name { font-size:.72rem; color:var(--muted); margin-top:.2rem; line-height:1.3; }
+
+.info-note {
+  background:rgba(37,99,235,.08); border:1px solid rgba(37,99,235,.25);
+  color:#93c5fd; padding:.9rem 1.1rem; border-radius:10px;
+  font-size:.86rem; line-height:1.65; margin-bottom:1.5rem;
+}
+
+@media(max-width:720px) {
+  .options-row { grid-template-columns:1fr; }
+  .chart-grid  { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+{% endblock %}
+{% block body %}
+
+<nav class="topnav">
+  <a href="{{ url_for('hr_dashboard') }}" class="nav-brand"><span class="logo-icon">⬡</span> HRAnalytics</a>
+  <div class="nav-links">
+    <a href="{{ url_for('hr_dashboard') }}">← Dashboard</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-role-badge">HR Manager</span>
+    <span class="nav-user">{{ session.name }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+  </div>
+</nav>
+
+<main class="setup-page">
+
+  <div class="setup-hero">
+    <h1>Power BI Integration Setup</h1>
+    <p>Connect your Power BI report and embed it live inside the HR Analytics dashboard — no redirection, right inside Flask.</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="alert alert-{{ cat }}" style="margin-bottom:1.2rem">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Options -->
+  <div class="options-row">
+    <div class="opt-card">
+      <h3>📁 Option A — CSV Import <span class="badge badge-easy">Easiest</span></h3>
+      <p>Export MySQL data to CSV files, import them into Power BI Desktop. Best for demos and presentations.</p>
+      <div class="opt-code">python powerbi/export_for_powerbi.py</div>
+      <p style="margin-top:.7rem">Creates 7 pre-aggregated CSVs in <code style="background:var(--surface);padding:.1rem .3rem;border-radius:4px;border:1px solid var(--border);font-size:.78rem">powerbi/data/</code></p>
+    </div>
+    <div class="opt-card">
+      <h3>🔗 Option B — Live MySQL <span class="badge badge-live">Live Data</span></h3>
+      <p>Connect Power BI directly to your MySQL database for real-time refresh. Requires MySQL ODBC Connector 8.x (64-bit).</p>
+      <p style="margin-top:.7rem;font-size:.83rem">
+        Server: <code style="background:var(--surface2);padding:.1rem .35rem;border-radius:4px;border:1px solid var(--border)">localhost</code> &nbsp;
+        Database: <code style="background:var(--surface2);padding:.1rem .35rem;border-radius:4px;border:1px solid var(--border)">hr_analytics</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- Step-by-step -->
+  <div class="steps-list">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div>
+        <h3>Install Power BI Desktop (Free)</h3>
+        <p>Download from <a href="https://powerbi.microsoft.com/desktop" target="_blank">powerbi.microsoft.com/desktop</a>. Sign in with a Microsoft work/school account (free). Personal Microsoft accounts also work for Publish to Web.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div>
+        <h3>Export Data from MySQL</h3>
+        <p>Run: <code>python powerbi/export_for_powerbi.py</code> — generates 7 CSV files for all charts. Then in Power BI Desktop: <strong>Home → Get Data → Text/CSV</strong> and import each file from <code>powerbi/data/</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div>
+        <h3>Build 8 Charts (see CHARTS_GUIDE.md for DAX + settings)</h3>
+        <p>Create the 8 visuals shown below. The guide at <code>powerbi/CHARTS_GUIDE.md</code> has exact visual types, field mappings, DAX measures, and color codes for each chart.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div>
+        <h3>Publish to Power BI Service</h3>
+        <p>In Power BI Desktop: <strong>Home → Publish → select your workspace</strong>. Open <a href="https://app.powerbi.com" target="_blank">app.powerbi.com</a> to confirm your report appeared.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">5</div>
+      <div>
+        <h3>Get Your Embed URL</h3>
+        <p>
+          <strong>Public embed (recommended for demo):</strong> In app.powerbi.com, open your report → File → <strong>Publish to web (public)</strong> → Create embed code → copy the <strong>page URL</strong> (not the iframe code).<br><br>
+          <strong>Secure workspace embed:</strong> File → <strong>Embed report → Website or portal</strong> → copy the <code>src</code> URL from the generated iframe.
+        </p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">6</div>
+      <div>
+        <h3>Paste URL Below → Done!</h3>
+        <p>Once saved, the <strong>Power BI Report tab</strong> in your HR Dashboard will immediately show your live report — fully embedded inside Flask with no page redirect.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts reference -->
+  <div class="pbi-charts-ref">
+    <h3>8 Charts to Build in Power BI Desktop</h3>
+    <div class="chart-grid">
+      <div class="chart-item"><div class="ci-icon">📊</div><div class="ci-type">Clustered Bar</div><div class="ci-name">Attrition by Department</div></div>
+      <div class="chart-item"><div class="ci-icon">🍩</div><div class="ci-type">Donut Chart</div><div class="ci-name">Overall Attrition Split (Yes/No)</div></div>
+      <div class="chart-item"><div class="ci-icon">📈</div><div class="ci-type">Column Chart</div><div class="ci-name">Attrition Rate by Age Group</div></div>
+      <div class="chart-item"><div class="ci-icon">🔲</div><div class="ci-type">Stacked Bar</div><div class="ci-name">Salary Band vs Attrition</div></div>
+      <div class="chart-item"><div class="ci-icon">🥧</div><div class="ci-type">Pie Chart</div><div class="ci-name">Overtime Impact on Attrition</div></div>
+      <div class="chart-item"><div class="ci-icon">↔</div><div class="ci-type">Horizontal Bar</div><div class="ci-name">Attrition Rate by Job Role</div></div>
+      <div class="chart-item"><div class="ci-icon">📉</div><div class="ci-type">Line Chart</div><div class="ci-name">Job Satisfaction vs Attrition</div></div>
+      <div class="chart-item"><div class="ci-icon">🃏</div><div class="ci-type">KPI Cards ×4</div><div class="ci-name">Total, Rate, Avg Salary, Avg Years</div></div>
+    </div>
+  </div>
+
+  <!-- URL input -->
+  <div class="url-card">
+    <h2>Paste Your Power BI Embed URL</h2>
+    <p class="subtitle">
+      The URL should look like:
+      <code>https://app.powerbi.com/reportEmbed?reportId=YOUR_ID&amp;autoAuth=true&amp;ctid=YOUR_TENANT</code>
+      &nbsp;or a public Publish-to-Web URL.
+    </p>
+    <form method="POST">
+      <div class="url-input-row">
+        <div class="form-group">
+          <label>Power BI Embed URL</label>
+          <input type="url" name="embed_url"
+            value="{{ current_url }}"
+            placeholder="https://app.powerbi.com/reportEmbed?reportId=…"
+            style="font-size:.85rem">
+        </div>
+        <button type="submit" class="btn-primary" style="white-space:nowrap">Save & Embed →</button>
+      </div>
+    </form>
+
+    <div class="url-current">
+      {% if current_url %}
+        <span class="ok">✓ Currently saved:</span> {{ current_url }}
+      {% else %}
+        No URL saved yet. Follow the steps above, then paste your embed URL here.
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="info-note">
+    💡 <strong>No Power BI account?</strong> Your HR Dashboard already has 8 full Chart.js analytics charts built on live MySQL data that work completely without Power BI. The Power BI tab adds a richer interactive report layer — excellent for your B.Tech project presentation.
+  </div>
+
+  <a href="{{ url_for('hr_dashboard') }}" class="btn-primary">← Back to Dashboard</a>
+
+</main>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — Sign Up{% endblock %}
+{% block body_class %}{% endblock %}
+{% block body %}
+
+<div class="auth-split">
+
+  <div class="auth-brand">
+    <div class="brand-grid"></div>
+    <div class="brand-content">
+      <div class="brand-logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">HRAnalytics</span>
+      </div>
+      <h1 class="brand-headline">Join the<br>smarter HR<br>platform.</h1>
+      <p class="brand-sub">Use machine learning to understand your workforce — before it's too late.</p>
+      <div class="brand-stats">
+        <div class="bstat"><span class="bstat-num">Free</span><span class="bstat-label">To Get Started</span></div>
+        <div class="bstat"><span class="bstat-num">IBM</span><span class="bstat-label">Dataset Powered</span></div>
+        <div class="bstat"><span class="bstat-num">ML</span><span class="bstat-label">Predictions</span></div>
+      </div>
+    </div>
+    <div class="brand-bg-circle c1"></div>
+    <div class="brand-bg-circle c2"></div>
+    <div class="brand-bg-circle c3"></div>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-form-wrap">
+
+      <div class="form-header">
+        <h2>Create Account</h2>
+        <p>Set up your HR Analytics profile</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+          <div class="alert alert-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" placeholder="Your full name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" placeholder="you@company.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" placeholder="Min 8 characters" required>
+        </div>
+        <div class="form-group">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            <option value="Employee">Employee</option>
+            <option value="HR">HR Manager</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-primary full-width">Create Account →</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

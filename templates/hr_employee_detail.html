@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — Employee Detail{% endblock %}
+{% block body %}
+
+<nav class="topnav">
+  <a href="/" class="nav-brand"><span class="logo-icon">⬡</span> HRAnalytics</a>
+  <div class="nav-right">
+    <a href="{{ url_for('hr_dashboard') }}" class="btn-ghost">← Back to Dashboard</a>
+    <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+  </div>
+</nav>
+
+<main class="detail-main">
+
+  <div class="detail-header">
+    <h1>{{ emp.name }}</h1>
+    <p>{{ emp.job_role }} · {{ emp.department }}</p>
+    <span class="risk-badge risk-{{ emp.risk_level|lower }} risk-lg">
+      {{ emp.risk_level }} Risk
+    </span>
+  </div>
+
+  <div class="detail-grid">
+
+    <!-- Assessment Details -->
+    <div class="detail-section">
+      <h3>Assessment Results</h3>
+      <div class="detail-items">
+        <div class="det-item">
+          <span>Attrition Prediction</span>
+          <strong class="{% if emp.attrition_prediction == 'Yes' %}text-red{% else %}text-green{% endif %}">
+            {{ emp.attrition_prediction }}
+          </strong>
+        </div>
+        <div class="det-item"><span>Leave Probability</span><strong>{{ emp.attrition_probability }}%</strong></div>
+        <div class="det-item"><span>Monthly Income</span><strong>₹{{ emp.monthly_income|int }}</strong></div>
+        <div class="det-item"><span>Years at Company</span><strong>{{ emp.years_at_company }}</strong></div>
+        <div class="det-item"><span>Overtime</span><strong>{{ emp.overtime }}</strong></div>
+        <div class="det-item"><span>Job Satisfaction</span><strong>{{ emp.job_satisfaction }}/4</strong></div>
+        <div class="det-item"><span>Work-Life Balance</span><strong>{{ emp.work_life_balance }}/4</strong></div>
+        <div class="det-item"><span>Env. Satisfaction</span><strong>{{ emp.environment_satisfaction }}/4</strong></div>
+        <div class="det-item"><span>Yrs Since Promotion</span><strong>{{ emp.years_since_last_promotion }}</strong></div>
+        <div class="det-item"><span>Distance from Home</span><strong>{{ emp.distance_from_home }} km</strong></div>
+        <div class="det-item"><span>Assessed On</span><strong>{{ emp.submitted_at.strftime('%d %b %Y') if emp.submitted_at else 'N/A' }}</strong></div>
+      </div>
+    </div>
+
+    <!-- Log HR Action -->
+    <div class="detail-section">
+      <h3>Log HR Action</h3>
+      <form method="POST" action="{{ url_for('hr_action') }}" class="action-form">
+        <input type="hidden" name="employee_id" value="{{ emp.employee_id }}">
+        <div class="form-group">
+          <label>Action Type</label>
+          <select name="action_type">
+            <option>Salary Increment</option>
+            <option>Promotion Offered</option>
+            <option>Workload Reduction</option>
+            <option>Team Transfer</option>
+            <option>One-on-One Meeting</option>
+            <option>Remote Work Approved</option>
+            <option>Training Program Enrolled</option>
+            <option>Performance Review Scheduled</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea name="action_notes" rows="5" placeholder="Describe the action taken or planned…"></textarea>
+        </div>
+        <button type="submit" class="btn-primary">Log Action →</button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Action History -->
+  {% if actions %}
+  <div class="actions-history">
+    <h3>Action History ({{ actions|length }} actions logged)</h3>
+    <div class="table-wrap" style="margin-top:1rem">
+      <table class="emp-table">
+        <thead>
+          <tr><th>Action Type</th><th>Notes</th><th>Logged On</th></tr>
+        </thead>
+        <tbody>
+          {% for a in actions %}
+          <tr>
+            <td><strong>{{ a.action_type }}</strong></td>
+            <td>{{ a.action_notes or '—' }}</td>
+            <td>{{ a.action_date.strftime('%d %b %Y, %I:%M %p') if a.action_date else 'N/A' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="actions-history">
+    <h3>Action History</h3>
+    <p style="color:var(--muted);margin-top:.8rem;font-size:.9rem">No actions logged for this employee yet.</p>
+  </div>
+  {% endif %}
+
+</main>
+
+{% endblock %}

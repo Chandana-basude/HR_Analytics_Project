@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — My Dashboard{% endblock %}
+{% block body %}
+
+<nav class="topnav">
+  <a href="/" class="nav-brand"><span class="logo-icon">⬡</span> HRAnalytics</a>
+  <div class="nav-links">
+    <a href="{{ url_for('employee_dashboard') }}" class="active">My Dashboard</a>
+    <a href="{{ url_for('employee_form') }}">Assessment</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user">{{ session.name }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+  </div>
+</nav>
+
+<main class="emp-dash-main">
+  <div class="emp-dash-header">
+    <h1>Hello, {{ session.name }} 👋</h1>
+    <p>Here's your latest attrition risk assessment from HR.</p>
+  </div>
+
+  {% if employee %}
+  <div class="emp-status-grid">
+    <div class="emp-status-card
+      {% if employee.risk_level == 'High' %}card-red
+      {% elif employee.risk_level == 'Medium' %}card-orange
+      {% else %}card-green{% endif %}">
+      <div class="status-label">Risk Level</div>
+      <div class="status-val">{{ employee.risk_level }}</div>
+      <div class="status-icon">
+        {% if employee.risk_level == 'High' %}⚠️
+        {% elif employee.risk_level == 'Medium' %}⚡
+        {% else %}✅{% endif %}
+      </div>
+    </div>
+
+    <div class="emp-status-card">
+      <div class="status-label">Attrition Prediction</div>
+      <div class="status-val" style="color:{% if employee.attrition_prediction == 'Yes' %}#f87171{% else %}#4ade80{% endif %}">
+        {{ employee.attrition_prediction }}
+      </div>
+      <div class="status-icon">🤖</div>
+    </div>
+
+    <div class="emp-status-card">
+      <div class="status-label">Leave Probability</div>
+      <div class="status-val">{{ employee.attrition_probability }}%</div>
+      <div class="status-icon">📊</div>
+    </div>
+
+    <div class="emp-status-card">
+      <div class="status-label">Assessment Date</div>
+      <div class="status-val" style="font-size:1.1rem">
+        {{ employee.submitted_at.strftime('%d %b %Y') if employee.submitted_at else 'N/A' }}
+      </div>
+      <div class="status-icon">📅</div>
+    </div>
+  </div>
+
+  <div class="emp-profile-card">
+    <h2>Your Submitted Profile</h2>
+    <div class="profile-grid">
+      <div class="profile-item"><span>Department</span><strong>{{ employee.department }}</strong></div>
+      <div class="profile-item"><span>Job Role</span><strong>{{ employee.job_role }}</strong></div>
+      <div class="profile-item"><span>Monthly Income</span><strong>₹{{ employee.monthly_income|int }}</strong></div>
+      <div class="profile-item"><span>Years at Company</span><strong>{{ employee.years_at_company }}</strong></div>
+      <div class="profile-item"><span>Overtime</span><strong>{{ employee.overtime }}</strong></div>
+      <div class="profile-item"><span>Job Satisfaction</span><strong>{{ employee.job_satisfaction }}/4</strong></div>
+      <div class="profile-item"><span>Work-Life Balance</span><strong>{{ employee.work_life_balance }}/4</strong></div>
+      <div class="profile-item"><span>Env. Satisfaction</span><strong>{{ employee.environment_satisfaction }}/4</strong></div>
+      <div class="profile-item"><span>Last Promotion</span><strong>{{ employee.years_since_last_promotion }} yrs ago</strong></div>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="no-assessment-card">
+    <div class="no-assess-icon">📋</div>
+    <h2>No Assessment Yet</h2>
+    <p>Complete your attrition risk questionnaire to see your personalized insights and recommendations.</p>
+    <a href="{{ url_for('employee_form') }}" class="btn-primary btn-lg">Start Assessment →</a>
+  </div>
+  {% endif %}
+
+  <div class="emp-actions">
+    <a href="{{ url_for('employee_form') }}" class="btn-primary">
+      {% if employee %}Re-take Assessment{% else %}Start Assessment{% endif %} →
+    </a>
+  </div>
+</main>
+
+{% endblock %}

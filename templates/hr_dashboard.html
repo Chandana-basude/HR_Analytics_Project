@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — Dashboard{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ── DASHBOARD TABS ── */
+.dash-tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:2rem; overflow-x:auto; gap:0; }
+.dash-tab {
+  padding:.75rem 1.5rem; font-size:.88rem; font-weight:600; color:var(--muted);
+  cursor:pointer; border:none; border-bottom:2px solid transparent; background:none;
+  font-family:var(--font-sans); white-space:nowrap; transition:all .2s;
+}
+.dash-tab:hover { color:var(--text); }
+.dash-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-pane { display:none; }
+.tab-pane.active { display:block; }
+
+/* ── CHARTS ── */
+.charts-2col { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; margin-bottom:1.2rem; }
+.chart-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.5rem; }
+.chart-title { font-size:.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1.2px; margin-bottom:.25rem; }
+.chart-desc  { font-size:.75rem; color:var(--border); margin-bottom:1.1rem; }
+
+/* ── INSIGHTS ROW ── */
+.insights-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:1.4rem; }
+.ins-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.2rem; border-left:3px solid var(--accent); }
+.ins-card.red  { border-left-color:var(--red); }
+.ins-card.orange { border-left-color:var(--orange); }
+.ins-card.green  { border-left-color:var(--green); }
+.ins-card.blue   { border-left-color:var(--blue); }
+.ins-label { font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:.3rem; }
+.ins-val   { font-family:var(--font-serif); font-size:1.7rem; line-height:1; }
+.ins-sub   { font-size:.75rem; color:var(--muted); margin-top:.35rem; }
+
+/* ── POWER BI SECTION ── */
+.pbi-toolbar {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:1.2rem; flex-wrap:wrap; gap:.8rem;
+}
+.pbi-toolbar-left h2 { font-family:var(--font-serif); font-size:1.5rem; }
+.pbi-toolbar-left p  { color:var(--muted); font-size:.85rem; margin-top:.2rem; }
+
+.pbi-frame-wrap {
+  background:var(--surface); border:1px solid var(--border); border-radius:16px;
+  overflow:hidden; min-height:600px;
+}
+/* Live embed header */
+.pbi-live-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.9rem 1.4rem; background:var(--surface2); border-bottom:1px solid var(--border);
+}
+.pbi-live-bar .pbi-live-title { display:flex; align-items:center; gap:.6rem; font-size:.9rem; font-weight:600; }
+.pbi-pulse {
+  width:8px; height:8px; border-radius:50%; background:var(--green);
+  animation:pbi-blink 2s ease-in-out infinite;
+}
+@keyframes pbi-blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+.pbi-frame-wrap iframe { width:100%; height:600px; border:none; display:block; }
+
+/* Not-configured state */
+.pbi-empty {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:4rem 2rem; text-align:center; gap:1rem;
+}
+.pbi-empty-icon { font-size:3.5rem; }
+.pbi-empty h2   { font-family:var(--font-serif); font-size:1.8rem; }
+.pbi-empty p    { color:var(--muted); max-width:500px; line-height:1.75; font-size:.92rem; }
+.pbi-steps-row  { display:flex; gap:.8rem; flex-wrap:wrap; justify-content:center; margin:.5rem 0; }
+.pbi-step       { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:.5rem 1rem; font-size:.8rem; color:var(--muted); }
+.pbi-step strong { color:var(--text); }
+
+/* Chart reference grid */
+.pbi-chart-ref { margin-top:1.5rem; }
+.pbi-chart-ref-label { font-size:.75rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:.8rem; }
+.pbi-chart-ref-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; }
+.pbi-chart-ref-item {
+  background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+  padding:1rem; text-align:center;
+}
+.pbi-chart-ref-item .icon { font-size:1.5rem; margin-bottom:.4rem; }
+.pbi-chart-ref-item .type { font-size:.75rem; color:var(--accent); font-weight:600; }
+.pbi-chart-ref-item .name { font-size:.73rem; color:var(--muted); margin-top:.2rem; }
+
+/* ── EMPLOYEE TABLE ── */
+.table-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; gap:.8rem; }
+.table-toolbar h2 { font-family:var(--font-serif); font-size:1.4rem; }
+.table-toolbar-right { display:flex; gap:.7rem; flex-wrap:wrap; align-items:center; }
+.search-input, .filter-select {
+  background:var(--surface2); border:1px solid var(--border); color:var(--text);
+  padding:.5rem .9rem; border-radius:8px; font-family:var(--font-sans); font-size:.85rem;
+}
+.search-input:focus, .filter-select:focus { outline:none; border-color:var(--accent); }
+
+@media(max-width:900px){
+  .charts-2col { grid-template-columns:1fr; }
+  .insights-strip { grid-template-columns:1fr 1fr; }
+  .pbi-chart-ref-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media(max-width:580px){
+  .insights-strip { grid-template-columns:1fr; }
+  .pbi-chart-ref-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+{% endblock %}
+{% block body %}
+
+<nav class="topnav">
+  <a href="{{ url_for('hr_dashboard') }}" class="nav-brand"><span class="logo-icon">⬡</span> HRAnalytics</a>
+  <div class="nav-links">
+    <a href="{{ url_for('hr_dashboard') }}" class="active">Dashboard</a>
+    <a href="{{ url_for('powerbi_setup') }}">⚡ Power BI Setup</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-role-badge">HR Manager</span>
+    <span class="nav-user">{{ session.name }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+  </div>
+</nav>
+
+<main class="hr-main">
+
+  <!-- KPI Row -->
+  <section class="kpi-row">
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon">👥</div>
+      <div><div class="kpi-val">{{ stats.total_employees }}</div><div class="kpi-label">Total Employees</div></div>
+    </div>
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon">📉</div>
+      <div><div class="kpi-val">{{ stats.attrition_rate }}%</div><div class="kpi-label">Attrition Rate</div></div>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <div class="kpi-icon">⚠️</div>
+      <div><div class="kpi-val">{{ stats.high_risk_employees }}</div><div class="kpi-label">High Risk (ML)</div></div>
+    </div>
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon">💰</div>
+      <div><div class="kpi-val">₹{{ stats.avg_monthly_income }}</div><div class="kpi-label">Avg Monthly Income</div></div>
+    </div>
+  </section>
+
+  <!-- Dashboard Tabs -->
+  <div class="dash-tabs">
+    <button class="dash-tab active"  onclick="switchTab('overview',this)">📊 Overview</button>
+    <button class="dash-tab"         onclick="switchTab('analysis',this)">📈 Attrition Deep-Dive</button>
+    <button class="dash-tab"         onclick="switchTab('powerbi',this)">⚡ Power BI Report</button>
+    <button class="dash-tab"         onclick="switchTab('employees',this)">👥 Employees</button>
+  </div>
+
+  <!-- ══ TAB: OVERVIEW ══════════════════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-overview">
+
+    <div class="insights-strip">
+      <div class="ins-card red">
+        <div class="ins-label">Top Attrition Dept</div>
+        <div class="ins-val" id="ins-dept">—</div>
+        <div class="ins-sub" id="ins-dept-rate">Loading…</div>
+      </div>
+      <div class="ins-card orange">
+        <div class="ins-label">Most At-Risk Age</div>
+        <div class="ins-val" id="ins-age">—</div>
+        <div class="ins-sub" id="ins-age-rate">Loading…</div>
+      </div>
+      <div class="ins-card blue">
+        <div class="ins-label">Overtime Attrition</div>
+        <div class="ins-val" id="ins-ot">—</div>
+        <div class="ins-sub">vs non-overtime employees</div>
+      </div>
+      <div class="ins-card green">
+        <div class="ins-label">ML Predictions Done</div>
+        <div class="ins-val">{{ stats.high_risk_employees }}</div>
+        <div class="ins-sub">High-risk flags from model</div>
+      </div>
+    </div>
+
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-title">Attrition by Department</div>
+        <div class="chart-desc">Total employees vs employees who left per department</div>
+        <canvas id="chartDept" height="230"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Attrition by Age Group</div>
+        <div class="chart-desc">Percentage of each age band that left the company</div>
+        <canvas id="chartAge" height="230"></canvas>
+      </div>
+    </div>
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-title">Overtime vs Attrition</div>
+        <div class="chart-desc">Attrition split between overtime and non-overtime employees</div>
+        <canvas id="chartOt" height="230"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Live Risk Distribution</div>
+        <div class="chart-desc">ML prediction results from submitted employee assessments</div>
+        <canvas id="chartRisk" height="230"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ TAB: ANALYSIS ══════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-analysis">
+
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-title">Salary Band vs Attrition</div>
+        <div class="chart-desc">Employees earning under ₹3K have 41% attrition — highest of any band</div>
+        <canvas id="chartSalary" height="260"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Attrition Rate by Job Role</div>
+        <div class="chart-desc">Sales Representatives (39.8%) and Lab Technicians (23.9%) are most at-risk</div>
+        <canvas id="chartJobRole" height="260"></canvas>
+      </div>
+    </div>
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-title">Job Satisfaction vs Attrition</div>
+        <div class="chart-desc">Employees with satisfaction score 1 (Low) leave at 22.8% rate</div>
+        <canvas id="chartSat" height="230"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Work-Life Balance vs Attrition</div>
+        <div class="chart-desc">Poor work-life balance (score 1) correlates with 31.3% attrition</div>
+        <canvas id="chartWlb" height="230"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ TAB: POWER BI ══════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-powerbi">
+
+    <div class="pbi-toolbar">
+      <div class="pbi-toolbar-left">
+        <h2>Power BI Dashboard</h2>
+        <p>Your published Power BI report embedded live inside this Flask app</p>
+      </div>
+      <a href="{{ url_for('powerbi_setup') }}" class="btn-ghost" style="font-size:.82rem">⚙ Configure Embed URL</a>
+    </div>
+
+    <div class="pbi-frame-wrap">
+      {% if powerbi_url %}
+        {# ── LIVE EMBED ─────────────────────────────────── #}
+        <div class="pbi-live-bar">
+          <div class="pbi-live-title">
+            <span class="pbi-pulse"></span>
+            Power BI Report — Live
+          </div>
+          <a href="{{ powerbi_url }}" target="_blank" class="btn-sm">Open in Power BI ↗</a>
+        </div>
+        <iframe
+          src="{{ powerbi_url }}"
+          frameborder="0"
+          allowFullScreen="true"
+          title="HR Analytics Power BI Report">
+        </iframe>
+
+      {% else %}
+        {# ── BUILT-IN POWER BI STYLE REPORT (shown until real URL is configured) ── #}
+        <div class="pbi-live-bar" style="justify-content:space-between">
+          <div class="pbi-live-title">
+            <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block"></span>
+            Built-in Power BI–Style Report &nbsp;·&nbsp; 4 pages · 8 charts · IBM HR Dataset
+          </div>
+          <div style="display:flex;gap:.7rem;align-items:center">
+            <a href="{{ url_for('powerbi_builtin_report') }}" target="_blank" class="btn-sm" style="font-size:.76rem">Open Full Screen ↗</a>
+            <a href="{{ url_for('powerbi_setup') }}" class="btn-sm" style="font-size:.76rem;background:rgba(37,99,235,.15);color:#60a5fa;border-color:rgba(37,99,235,.3)">⚙ Connect Real Power BI →</a>
+          </div>
+        </div>
+        <iframe
+          src="{{ url_for('powerbi_builtin_report') }}"
+          frameborder="0"
+          title="HR Analytics Built-in Power BI Report"
+          style="width:100%;height:680px;border:none;display:block">
+        </iframe>
+
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- ══ TAB: EMPLOYEES ════════════════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-employees">
+
+    <div class="table-toolbar">
+      <h2>Employee Assessments</h2>
+      <div class="table-toolbar-right">
+        <input type="text" id="empSearch" placeholder="Search name / dept…" class="search-input">
+        <select id="riskFilter" class="filter-select">
+          <option value="">All Risk Levels</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        <button class="btn-ghost" onclick="exportCSV()" style="font-size:.8rem;padding:.45rem .9rem">⬇ Export CSV</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="emp-table" id="empTable">
+        <thead>
+          <tr>
+            <th>Name</th><th>Department</th><th>Job Role</th><th>Income</th>
+            <th>Overtime</th><th>Prediction</th><th>Probability</th>
+            <th>Risk</th><th>Date</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in employees %}
+          <tr data-risk="{{ e.risk_level }}" data-name="{{ e.name|lower }}" data-dept="{{ e.department|lower }}">
+            <td><strong>{{ e.name }}</strong></td>
+            <td>{{ e.department }}</td>
+            <td>{{ e.job_role }}</td>
+            <td>₹{{ e.monthly_income|int }}</td>
+            <td>
+              <span style="font-size:.77rem;padding:.2rem .55rem;border-radius:20px;
+                background:{% if e.overtime=='Yes' %}rgba(239,68,68,.12){% else %}rgba(34,197,94,.1){% endif %};
+                color:{% if e.overtime=='Yes' %}#f87171{% else %}#4ade80{% endif %}">
+                {{ e.overtime }}
+              </span>
+            </td>
+            <td>
+              <span class="pred-badge {% if e.attrition_prediction=='Yes' %}pred-yes{% else %}pred-no{% endif %}">
+                {{ e.attrition_prediction }}
+              </span>
+            </td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar" style="width:{{ [e.attrition_probability * 0.7, 70]|min }}px;
+                  background:{% if e.attrition_probability>70 %}#ef4444{% elif e.attrition_probability>40 %}#f59e0b{% else %}#22c55e{% endif %}">
+                </div>
+                <span>{{ e.attrition_probability }}%</span>
+              </div>
+            </td>
+            <td><span class="risk-badge risk-{{ e.risk_level|lower }}">{{ e.risk_level }}</span></td>
+            <td style="color:var(--muted);font-size:.83rem">
+              {{ e.submitted_at.strftime('%d %b %Y') if e.submitted_at else '—' }}
+            </td>
+            <td><a href="{{ url_for('hr_employee_detail', emp_id=e.employee_id) }}" class="btn-sm">View</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="10" class="empty-state">No employee assessments yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /tab-employees -->
+
+</main>
+
+<script>
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'analysis') renderAnalysis();
+}
+
+// ── Shared chart config ───────────────────────────────────────────────────────
+const CF = {
+  responsive: true, maintainAspectRatio: true,
+  plugins: { legend: { labels: { color:'#8b949e', font:{ family:'DM Sans', size:11 } } } },
+  scales: {
+    x: { ticks:{ color:'#8b949e', font:{size:10} }, grid:{ color:'#21262d' } },
+    y: { ticks:{ color:'#8b949e', font:{size:10} }, grid:{ color:'#21262d' } }
+  }
+};
+async function api(url) {
+  try { return await (await fetch(url)).json(); } catch(e) { return []; }
+}
+
+// ── OVERVIEW CHARTS (auto-load on page open) ──────────────────────────────────
+let ovLoaded = false;
+async function renderOverview() {
+  if (ovLoaded) return;
+  ovLoaded = true;
+
+  const [dept, age, ot, risk] = await Promise.all([
+    api('/api/attrition_by_dept'),
+    api('/api/attrition_by_age'),
+    api('/api/attrition_by_overtime'),
+    api('/api/risk_distribution')
+  ]);
+
+  // Insight strip
+  if (dept.length) {
+    const top = dept.reduce((a,b) => b.rate > a.rate ? b : a);
+    document.getElementById('ins-dept').textContent = top.Department.replace('Research & Development','R&D');
+    document.getElementById('ins-dept-rate').textContent = top.rate + '% attrition rate';
+  }
+  if (age.length) {
+    const top = age.reduce((a,b) => b.AttritionRate > a.AttritionRate ? b : a);
+    document.getElementById('ins-age').textContent = top.AgeGroup;
+    document.getElementById('ins-age-rate').textContent = top.AttritionRate + '% attrition rate';
+  }
+  if (ot.length) {
+    const yes = ot.find(r => r.OverTime === 'Yes');
+    if (yes) document.getElementById('ins-ot').textContent = yes.AttritionRate + '%';
+  }
+
+  // ── Dept grouped bar ──
+  if (dept.length) {
+    new Chart(document.getElementById('chartDept'), {
+      type: 'bar',
+      data: {
+        labels: dept.map(d => d.Department),
+        datasets: [
+          { label:'Total', data: dept.map(d=>d.total),
+            backgroundColor:'rgba(59,130,246,.35)', borderColor:'#3b82f6', borderWidth:1.5, borderRadius:4 },
+          { label:'Attrited', data: dept.map(d=>d.attrited),
+            backgroundColor:'rgba(239,68,68,.65)', borderColor:'#ef4444', borderWidth:1.5, borderRadius:4 }
+        ]
+      },
+      options: {
+        ...CF,
+        plugins: { ...CF.plugins, tooltip: { callbacks: {
+          afterLabel: ctx => {
+            if (ctx.datasetIndex === 1) {
+              const d = dept[ctx.dataIndex];
+              return `Rate: ${d.rate}%`;
+            }
+          }
+        }}}
+      }
+    });
+  }
+
+  // ── Age bar ──
+  if (age.length) {
+    const COLS = ['rgba(239,68,68,.75)','rgba(245,158,11,.7)','rgba(59,130,246,.65)','rgba(34,197,94,.65)','rgba(168,85,247,.65)'];
+    new Chart(document.getElementById('chartAge'), {
+      type: 'bar',
+      data: {
+        labels: age.map(d => d.AgeGroup),
+        datasets: [{ label:'Attrition Rate (%)', data: age.map(d=>d.AttritionRate),
+          backgroundColor: COLS, borderRadius: 5 }]
+      },
+      options: { ...CF, plugins: { ...CF.plugins, legend:{display:false} } }
+    });
+  }
+
+  // ── Overtime doughnut ──
+  if (ot.length) {
+    new Chart(document.getElementById('chartOt'), {
+      type: 'doughnut',
+      data: {
+        labels: ot.map(d => `OT ${d.OverTime} — ${d.AttritionRate}% attrition`),
+        datasets: [{ data: ot.map(d=>d.Attrited),
+          backgroundColor:['rgba(239,68,68,.75)','rgba(59,130,246,.6)'],
+          borderColor:['#ef4444','#3b82f6'], borderWidth:2 }]
+      },
+      options: { responsive:true, plugins:{ legend:{ labels:{ color:'#8b949e', font:{size:11} } } } }
+    });
+  }
+
+  // ── Risk pie ──
+  if (risk.length) {
+    const RC = { High:'rgba(239,68,68,.7)', Medium:'rgba(245,158,11,.7)', Low:'rgba(34,197,94,.7)' };
+    new Chart(document.getElementById('chartRisk'), {
+      type: 'pie',
+      data: {
+        labels: risk.map(d => d.risk_level),
+        datasets: [{ data: risk.map(d=>d.count),
+          backgroundColor: risk.map(d=>RC[d.risk_level]||'rgba(99,102,241,.7)'),
+          borderColor:'#161b22', borderWidth:2 }]
+      },
+      options: { responsive:true, plugins:{ legend:{ labels:{ color:'#8b949e', font:{size:11} } } } }
+    });
+  }
+}
+
+// ── ANALYSIS CHARTS (lazy on tab click) ──────────────────────────────────────
+let anLoaded = false;
+async function renderAnalysis() {
+  if (anLoaded) return;
+  anLoaded = true;
+
+  const [sal, role, sat, wlb] = await Promise.all([
+    api('/api/attrition_by_salary'),
+    api('/api/attrition_by_jobrole'),
+    api('/api/attrition_by_satisfaction'),
+    api('/api/attrition_by_wlb')
+  ]);
+
+  // ── Salary stacked bar (horizontal) ──
+  if (sal.length) {
+    const stayed = sal.map(d => d.Total - d.Attrited);
+    new Chart(document.getElementById('chartSalary'), {
+      type:'bar', indexAxis:'y',
+      data: {
+        labels: sal.map(d=>d.SalaryBand),
+        datasets: [
+          { label:'Attrited', data:sal.map(d=>d.Attrited), backgroundColor:'rgba(239,68,68,.7)', borderRadius:4 },
+          { label:'Retained', data:stayed, backgroundColor:'rgba(34,197,94,.35)', borderRadius:4 }
+        ]
+      },
+      options: {
+        ...CF,
+        scales: {
+          x: { stacked:true, ticks:{color:'#8b949e'}, grid:{color:'#21262d'} },
+          y: { stacked:true, ticks:{color:'#8b949e'}, grid:{color:'#21262d'} }
+        }
+      }
+    });
+  }
+
+  // ── Job role bar (horizontal), color-coded) ──
+  if (role.length) {
+    const colors = role.map(d =>
+      d.AttritionRate>25 ? 'rgba(239,68,68,.75)' :
+      d.AttritionRate>15 ? 'rgba(245,158,11,.7)' : 'rgba(34,197,94,.6)');
+    new Chart(document.getElementById('chartJobRole'), {
+      type:'bar', indexAxis:'y',
+      data: {
+        labels: role.map(d=>d.JobRole),
+        datasets:[{ label:'Attrition Rate (%)', data:role.map(d=>d.AttritionRate),
+          backgroundColor:colors, borderRadius:4 }]
+      },
+      options: { ...CF, plugins:{...CF.plugins, legend:{display:false}} }
+    });
+  }
+
+  // ── Satisfaction line ──
+  if (sat.length) {
+    const LABELS = {1:'1 — Low',2:'2 — Medium',3:'3 — High',4:'4 — Very High'};
+    new Chart(document.getElementById('chartSat'), {
+      type:'line',
+      data: {
+        labels: sat.map(d=>LABELS[d.Level]||d.Level),
+        datasets:[{ label:'Attrition Rate (%)', data:sat.map(d=>d.AttritionRate),
+          borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.1)',
+          borderWidth:2.5, fill:true, tension:.4,
+          pointBackgroundColor:'#2563eb', pointRadius:5, pointHoverRadius:7 }]
+      },
+      options: { ...CF }
+    });
+  }
+
+  // ── WLB bar ──
+  if (wlb.length) {
+    const WLABELS = {1:'1 — Bad',2:'2 — Good',3:'3 — Better',4:'4 — Best'};
+    new Chart(document.getElementById('chartWlb'), {
+      type:'bar',
+      data: {
+        labels: wlb.map(d=>WLABELS[d.Level]||d.Level),
+        datasets:[{ label:'Attrition Rate (%)', data:wlb.map(d=>d.AttritionRate),
+          backgroundColor:['rgba(239,68,68,.75)','rgba(245,158,11,.7)','rgba(59,130,246,.65)','rgba(34,197,94,.65)'],
+          borderRadius:5 }]
+      },
+      options: { ...CF, plugins:{...CF.plugins, legend:{display:false}} }
+    });
+  }
+}
+
+// ── Table filter + CSV export ─────────────────────────────────────────────────
+const rows = () => Array.from(document.querySelectorAll('#empTable tbody tr'));
+
+function filterTable() {
+  const q = document.getElementById('empSearch').value.toLowerCase();
+  const r = document.getElementById('riskFilter').value.toLowerCase();
+  rows().forEach(row => {
+    const ok = (!q || (row.dataset.name+row.dataset.dept).includes(q))
+              && (!r || row.dataset.risk.toLowerCase() === r);
+    row.style.display = ok ? '' : 'none';
+  });
+}
+document.getElementById('empSearch').addEventListener('input', filterTable);
+document.getElementById('riskFilter').addEventListener('change', filterTable);
+
+function exportCSV() {
+  const headers = ['Name','Department','Job Role','Income','Overtime','Prediction','Probability','Risk','Date'];
+  const visible = rows().filter(r => r.style.display !== 'none');
+  const lines = [headers.join(',')];
+  visible.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const vals = [0,1,2,3,4,5,6,7,8].map(i => `"${(cells[i]?.textContent||'').trim().replace(/"/g,"'")}"`);
+    lines.push(vals.join(','));
+  });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
+  a.download = 'hr_employee_predictions.csv';
+  a.click();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', renderOverview);
+</script>
+
+{% endblock %}

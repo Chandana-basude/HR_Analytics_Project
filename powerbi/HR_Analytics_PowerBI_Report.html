@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR Analytics — Power BI Style Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@300;400;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ── Power BI inspired design system ── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+:root {
+  --pbi-bg: #f3f2f1;
+  --pbi-canvas: #ffffff;
+  --pbi-accent: #0078d4;
+  --pbi-accent2: #005a9e;
+  --pbi-yellow: #ffb900;
+  --pbi-red: #d13438;
+  --pbi-green: #107c10;
+  --pbi-orange: #ca5010;
+  --pbi-text: #201f1e;
+  --pbi-muted: #605e5c;
+  --pbi-border: #e1dfdd;
+  --pbi-header: #252423;
+  --pbi-sidebar: #323130;
+}
+html,body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--pbi-bg); color:var(--pbi-text); font-size:14px; min-height:100vh }
+
+/* ── Power BI chrome ── */
+.pbi-ribbon {
+  background: var(--pbi-header);
+  padding: 0 16px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: sticky; top: 0; z-index: 200;
+}
+.pbi-logo { display:flex; align-items:center; gap:8px; color:#fff; font-weight:600; font-size:15px }
+.pbi-logo-icon { width:24px; height:24px; background:var(--pbi-yellow); border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:14px }
+.pbi-nav { display:flex; gap:2px; margin-left:24px }
+.pbi-nav-btn {
+  color: rgba(255,255,255,.75); padding: 6px 14px; border-radius: 3px;
+  font-size: 13px; cursor:pointer; border:none; background:transparent;
+  font-family: 'Segoe UI', sans-serif; transition: background .15s;
+}
+.pbi-nav-btn:hover, .pbi-nav-btn.active { background: rgba(255,255,255,.12); color:#fff }
+.pbi-ribbon-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+.pbi-ribbon-right span { color:rgba(255,255,255,.65); font-size:12px }
+.pbi-share-btn { background:var(--pbi-accent); color:#fff; border:none; padding:5px 14px; border-radius:3px; font-size:12px; cursor:pointer; font-family:inherit }
+
+/* ── Page tabs (like Power BI report pages) ── */
+.pbi-pages {
+  background: #fff;
+  border-bottom: 1px solid var(--pbi-border);
+  display: flex;
+  align-items: flex-end;
+  padding: 0 16px;
+  gap: 2px;
+  overflow-x: auto;
+}
+.pbi-page-tab {
+  padding: 8px 16px 7px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--pbi-muted);
+  cursor:pointer;
+  border:none;
+  background: transparent;
+  border-bottom: 3px solid transparent;
+  font-family: 'Segoe UI', sans-serif;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.pbi-page-tab:hover { color: var(--pbi-text); background: #f3f2f1; }
+.pbi-page-tab.active { color:var(--pbi-accent); border-bottom-color:var(--pbi-accent); font-weight:600 }
+
+/* ── Report canvas ── */
+.pbi-canvas { padding: 12px 16px; min-height: calc(100vh - 96px) }
+.pbi-page { display:none }
+.pbi-page.active { display:block }
+
+/* ── Slicer bar (filters row) ── */
+.slicer-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--pbi-border);
+  border-radius: 4px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.slicer-label { font-size: 11px; font-weight: 600; color: var(--pbi-muted); text-transform: uppercase; letter-spacing: .5px; margin-right: 4px }
+.slicer-chip {
+  padding: 3px 10px; border-radius: 12px; font-size: 11px; cursor: pointer;
+  border: 1px solid var(--pbi-border); background: #f3f2f1; color: var(--pbi-text);
+  transition: all .15s; font-family: inherit;
+}
+.slicer-chip:hover { border-color: var(--pbi-accent); color: var(--pbi-accent) }
+.slicer-chip.on { background: var(--pbi-accent); color: #fff; border-color: var(--pbi-accent) }
+
+/* ── KPI cards ── */
+.kpi-strip { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-bottom: 12px }
+.kpi-tile {
+  background: #fff;
+  border: 1px solid var(--pbi-border);
+  border-radius: 4px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-tile::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.kpi-tile.blue::before  { background: var(--pbi-accent) }
+.kpi-tile.red::before   { background: var(--pbi-red) }
+.kpi-tile.orange::before { background: var(--pbi-orange) }
+.kpi-tile.green::before { background: var(--pbi-green) }
+.kpi-tile.yellow::before { background: var(--pbi-yellow) }
+.kpi-tile-label { font-size: 11px; color: var(--pbi-muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 6px }
+.kpi-tile-value { font-family: 'DM Serif Display', Georgia, serif; font-size: 2rem; line-height: 1; color: var(--pbi-text) }
+.kpi-tile-sub   { font-size: 11px; color: var(--pbi-muted); margin-top: 4px }
+.kpi-tile-icon  { position: absolute; right: 14px; top: 14px; font-size: 1.5rem; opacity: .2 }
+
+/* ── Chart grid ── */
+.chart-grid-2   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px }
+.chart-grid-3   { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px }
+.chart-grid-3-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px }
+
+.chart-tile {
+  background: #fff;
+  border: 1px solid var(--pbi-border);
+  border-radius: 4px;
+  padding: 14px 16px 16px;
+  position: relative;
+}
+.chart-tile-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px }
+.chart-tile-title { font-size: 13px; font-weight: 600; color: var(--pbi-text) }
+.chart-tile-subtitle { font-size: 11px; color: var(--pbi-muted); margin-bottom: 12px }
+.chart-tile-actions { display: flex; gap: 4px }
+.chart-tile-action { width: 22px; height: 22px; border: none; background: none; cursor: pointer; border-radius: 3px; color: var(--pbi-muted); display: flex; align-items: center; justify-content: center; font-size: 13px }
+.chart-tile-action:hover { background: var(--pbi-bg); color: var(--pbi-text) }
+
+/* ── Matrix / table tile ── */
+.matrix-table { width: 100%; border-collapse: collapse; font-size: 12px }
+.matrix-table th { text-align: left; padding: 6px 10px; background: var(--pbi-bg); font-weight: 600; color: var(--pbi-muted); border-bottom: 2px solid var(--pbi-border); font-size: 11px; text-transform: uppercase; letter-spacing: .4px }
+.matrix-table td { padding: 6px 10px; border-bottom: 1px solid var(--pbi-border); color: var(--pbi-text) }
+.matrix-table tr:hover td { background: #faf9f8 }
+.matrix-bar-cell { display: flex; align-items: center; gap: 8px }
+.matrix-bar { height: 8px; border-radius: 4px; background: var(--pbi-accent); flex-shrink: 0 }
+.val-red    { color: var(--pbi-red); font-weight: 600 }
+.val-orange { color: var(--pbi-orange); font-weight: 600 }
+.val-green  { color: var(--pbi-green); font-weight: 600 }
+
+/* ── Insight cards ── */
+.insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.insight-card { background: #fff; border: 1px solid var(--pbi-border); border-radius: 4px; padding: 16px }
+.insight-card h4 { font-size: 12px; font-weight: 600; color: var(--pbi-accent); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px }
+.insight-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 12px; line-height: 1.5 }
+.insight-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px }
+
+/* ── Waterfall summary bar ── */
+.risk-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; border: 1px solid var(--pbi-border); border-radius: 4px; overflow: hidden; margin-bottom: 12px }
+.risk-band { padding: 10px 16px; text-align: center }
+.risk-band.risk-h { background: #fdf3f2; border-right: 1px solid var(--pbi-border) }
+.risk-band.risk-m { background: #fff9f3; border-right: 1px solid var(--pbi-border) }
+.risk-band.risk-l { background: #f1faf1 }
+.risk-band-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px }
+.risk-h .risk-band-label { color: var(--pbi-red) }
+.risk-m .risk-band-label { color: var(--pbi-orange) }
+.risk-l .risk-band-label { color: var(--pbi-green) }
+.risk-band-val { font-family: 'DM Serif Display', serif; font-size: 1.8rem; line-height: 1 }
+.risk-band-sub { font-size: 11px; color: var(--pbi-muted); margin-top: 2px }
+
+/* ── Footer ── */
+.pbi-footer { background: #fff; border-top: 1px solid var(--pbi-border); padding: 8px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--pbi-muted) }
+
+/* ── Dark mode toggle ── */
+.dark-mode-btn { background: none; border: 1px solid rgba(255,255,255,.3); color: rgba(255,255,255,.7); padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; font-family: inherit }
+
+/* ── Responsive ── */
+@media(max-width:900px) {
+  .kpi-strip { grid-template-columns: repeat(3,1fr) }
+  .chart-grid-2,.chart-grid-3,.chart-grid-3-1 { grid-template-columns: 1fr }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Power BI Ribbon ── -->
+<div class="pbi-ribbon">
+  <div class="pbi-logo">
+    <div class="pbi-logo-icon">⚡</div>
+    Power BI
+  </div>
+  <div class="pbi-nav">
+    <button class="pbi-nav-btn active">File</button>
+    <button class="pbi-nav-btn">Home</button>
+    <button class="pbi-nav-btn">Insert</button>
+    <button class="pbi-nav-btn">Modeling</button>
+    <button class="pbi-nav-btn">View</button>
+  </div>
+  <div class="pbi-ribbon-right">
+    <span>HR_Analytics_Dashboard.pbix</span>
+    <button class="pbi-share-btn">Share</button>
+    <button class="dark-mode-btn" onclick="toggleDark()">🌙 Dark</button>
+  </div>
+</div>
+
+<!-- ── Report Pages ── -->
+<div class="pbi-pages">
+  <button class="pbi-page-tab active" onclick="showPage('overview',this)">📊 Overview</button>
+  <button class="pbi-page-tab"        onclick="showPage('attrition',this)">📈 Attrition Analysis</button>
+  <button class="pbi-page-tab"        onclick="showPage('jobrole',this)">👔 Job Role Breakdown</button>
+  <button class="pbi-page-tab"        onclick="showPage('insights',this)">💡 Key Insights</button>
+</div>
+
+<div class="pbi-canvas">
+
+  <!-- ════════════════════ PAGE 1: OVERVIEW ════════════════════ -->
+  <div class="pbi-page active" id="page-overview">
+
+    <!-- Slicer -->
+    <div class="slicer-bar">
+      <span class="slicer-label">Department:</span>
+      <button class="slicer-chip on" onclick="toggleSlicer(this,'dept','All')">All</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'dept','Sales')">Sales</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'dept','R&D')">R&D</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'dept','HR')">Human Resources</button>
+      &nbsp;&nbsp;
+      <span class="slicer-label">Attrition:</span>
+      <button class="slicer-chip on" onclick="toggleSlicer(this,'attr','All')">All</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'attr','Yes')">Yes (Attrited)</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'attr','No')">No (Retained)</button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-strip">
+      <div class="kpi-tile blue">
+        <div class="kpi-tile-label">Total Employees</div>
+        <div class="kpi-tile-value">1,470</div>
+        <div class="kpi-tile-sub">IBM HR Dataset</div>
+        <div class="kpi-tile-icon">👥</div>
+      </div>
+      <div class="kpi-tile red">
+        <div class="kpi-tile-label">Attrition Count</div>
+        <div class="kpi-tile-value">237</div>
+        <div class="kpi-tile-sub">↑ 16.1% of workforce</div>
+        <div class="kpi-tile-icon">📉</div>
+      </div>
+      <div class="kpi-tile orange">
+        <div class="kpi-tile-label">Attrition Rate</div>
+        <div class="kpi-tile-value">16.1%</div>
+        <div class="kpi-tile-sub">Industry avg: 12%</div>
+        <div class="kpi-tile-icon">⚠️</div>
+      </div>
+      <div class="kpi-tile green">
+        <div class="kpi-tile-label">Avg Monthly Income</div>
+        <div class="kpi-tile-value">₹6,503</div>
+        <div class="kpi-tile-sub">Median: ₹4,919</div>
+        <div class="kpi-tile-icon">💰</div>
+      </div>
+      <div class="kpi-tile yellow">
+        <div class="kpi-tile-label">Avg Years at Company</div>
+        <div class="kpi-tile-value">7.0</div>
+        <div class="kpi-tile-sub">Max: 40 years</div>
+        <div class="kpi-tile-icon">📅</div>
+      </div>
+    </div>
+
+    <!-- Row 1: Dept bar + Age column + OT pie -->
+    <div class="chart-grid-3">
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Attrition by Department</div>
+            <div class="chart-tile-subtitle">Clustered bar — Total vs Attrited count</div>
+          </div>
+          <div class="chart-tile-actions">
+            <button class="chart-tile-action" title="Expand">⤢</button>
+            <button class="chart-tile-action" title="More">⋯</button>
+          </div>
+        </div>
+        <canvas id="ch_dept" height="200"></canvas>
+      </div>
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Attrition Rate by Age Group</div>
+            <div class="chart-tile-subtitle">Column chart — % who left per age band</div>
+          </div>
+          <div class="chart-tile-actions">
+            <button class="chart-tile-action">⤢</button>
+            <button class="chart-tile-action">⋯</button>
+          </div>
+        </div>
+        <canvas id="ch_age" height="200"></canvas>
+      </div>
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Overtime Impact</div>
+            <div class="chart-tile-subtitle">Donut — Attrited: OT Yes vs No</div>
+          </div>
+          <div class="chart-tile-actions">
+            <button class="chart-tile-action">⤢</button>
+            <button class="chart-tile-action">⋯</button>
+          </div>
+        </div>
+        <canvas id="ch_ot" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Row 2: Salary stacked + Overall donut -->
+    <div class="chart-grid-3-1">
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Salary Band vs Attrition</div>
+            <div class="chart-tile-subtitle">Stacked bar — Retained vs Attrited per income bracket</div>
+          </div>
+          <div class="chart-tile-actions">
+            <button class="chart-tile-action">⤢</button>
+            <button class="chart-tile-action">⋯</button>
+          </div>
+        </div>
+        <canvas id="ch_salary" height="180"></canvas>
+      </div>
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Overall Attrition Split</div>
+            <div class="chart-tile-subtitle">Donut — Yes (16.1%) vs No (83.9%)</div>
+          </div>
+          <div class="chart-tile-actions">
+            <button class="chart-tile-action">⤢</button>
+            <button class="chart-tile-action">⋯</button>
+          </div>
+        </div>
+        <canvas id="ch_split" height="180"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════ PAGE 2: ATTRITION ANALYSIS ════════════════════ -->
+  <div class="pbi-page" id="page-attrition">
+
+    <div class="slicer-bar">
+      <span class="slicer-label">Filter:</span>
+      <button class="slicer-chip on" onclick="toggleSlicer(this,'sat','All')">All Satisfaction Levels</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'sat','Low')">Low (1)</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'sat','Medium')">Medium (2)</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'sat','High')">High (3)</button>
+      <button class="slicer-chip" onclick="toggleSlicer(this,'sat','Very High')">Very High (4)</button>
+    </div>
+
+    <div class="chart-grid-2">
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Job Satisfaction vs Attrition Rate</div>
+            <div class="chart-tile-subtitle">Line chart — Lower score = higher attrition risk</div>
+          </div>
+        </div>
+        <canvas id="ch_sat" height="240"></canvas>
+      </div>
+      <div class="chart-tile">
+        <div class="chart-tile-header">
+          <div>
+            <div class="chart-tile-title">Work-Life Balance vs Attrition Rate</div>
+            <div class="chart-tile-subtitle">Column chart — Score 1 (Bad) = 31.3% attrition</div>
+          </div>
+        </div>
+        <canvas id="ch_wlb" height="240"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <!-- Matrix table: all predictors -->
+      <div class="chart-tile">
+        <div class="chart-tile-title" style="margin-bottom:4px">Top Attrition Predictors — Matrix</div>
+        <div class="chart-tile-subtitle">Ranked by attrition rate impact</div>
+        <table class="matrix-table">
+          <thead>
+            <tr><th>#</th><th>Factor</th><th>Group</th><th>Rate</th><th>Visual</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Overtime</td><td>Yes</td><td class="val-red">30.5%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:90px;background:#d13438"></div></div></td></tr>
+            <tr><td>2</td><td>Work-Life Balance</td><td>Bad (1)</td><td class="val-red">31.3%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:93px;background:#d13438"></div></div></td></tr>
+            <tr><td>3</td><td>Salary Band</td><td>Below ₹3K</td><td class="val-red">41.2%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:120px;background:#d13438"></div></div></td></tr>
+            <tr><td>4</td><td>Age Group</td><td>Under 25</td><td class="val-red">35.5%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:105px;background:#ca5010"></div></div></td></tr>
+            <tr><td>5</td><td>Job Satisfaction</td><td>Low (1)</td><td class="val-orange">22.8%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:68px;background:#ca5010"></div></div></td></tr>
+            <tr><td>6</td><td>Department</td><td>Sales</td><td class="val-orange">20.6%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:61px;background:#ca5010"></div></div></td></tr>
+            <tr><td>7</td><td>Job Role</td><td>Sales Rep</td><td class="val-red">39.8%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:118px;background:#d13438"></div></div></td></tr>
+            <tr><td>8</td><td>Salary Band</td><td>₹3K–6K</td><td class="val-orange">17.0%</td><td><div class="matrix-bar-cell"><div class="matrix-bar" style="width:50px;background:#ca5010"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Age distribution area chart -->
+      <div class="chart-tile">
+        <div class="chart-tile-title" style="margin-bottom:4px">Age vs Attrition — Area Chart</div>
+        <div class="chart-tile-subtitle">Younger employees leave significantly more</div>
+        <canvas id="ch_age2" height="260"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════ PAGE 3: JOB ROLE BREAKDOWN ════════════════════ -->
+  <div class="pbi-page" id="page-jobrole">
+
+    <div class="chart-grid-3-1">
+      <div class="chart-tile">
+        <div class="chart-tile-title" style="margin-bottom:4px">Attrition Rate by Job Role</div>
+        <div class="chart-tile-subtitle">Horizontal bar — color-coded by risk level (Red >25%, Orange >15%, Green ≤15%)</div>
+        <canvas id="ch_role" height="300"></canvas>
+      </div>
+      <div class="chart-tile" style="display:flex;flex-direction:column;gap:12px">
+        <div class="chart-tile-title">Role Quick Stats</div>
+        <div style="display:grid;grid-template-columns:1fr;gap:8px;font-size:12px">
+          <div style="background:#fdf3f2;border:1px solid #fde7e7;border-radius:4px;padding:10px">
+            <div style="color:var(--pbi-red);font-weight:700;font-size:18px;font-family:'DM Serif Display',serif">39.8%</div>
+            <div style="color:#605e5c;margin-top:2px">Sales Representative attrition<br><small>Highest of all 9 roles</small></div>
+          </div>
+          <div style="background:#fff9f3;border:1px solid #fde8c8;border-radius:4px;padding:10px">
+            <div style="color:var(--pbi-orange);font-weight:700;font-size:18px;font-family:'DM Serif Display',serif">23.9%</div>
+            <div style="color:#605e5c;margin-top:2px">Laboratory Technician attrition<br><small>2nd highest role risk</small></div>
+          </div>
+          <div style="background:#f1faf1;border:1px solid #c8e6c9;border-radius:4px;padding:10px">
+            <div style="color:var(--pbi-green);font-weight:700;font-size:18px;font-family:'DM Serif Display',serif">2.5%</div>
+            <div style="color:#605e5c;margin-top:2px">Research Director attrition<br><small>Lowest of all roles</small></div>
+          </div>
+          <div style="background:#f0f6ff;border:1px solid #cce0ff;border-radius:4px;padding:10px">
+            <div style="color:var(--pbi-accent);font-weight:700;font-size:18px;font-family:'DM Serif Display',serif">₹2,626</div>
+            <div style="color:#605e5c;margin-top:2px">Avg salary: Sales Rep<br><small>vs ₹15,947 Research Director</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-tile" style="margin-top:10px">
+      <div class="chart-tile-title" style="margin-bottom:4px">Job Role Full Data Matrix</div>
+      <div class="chart-tile-subtitle" style="margin-bottom:12px">Complete breakdown — Total, Attrited, Rate, Avg Salary</div>
+      <table class="matrix-table">
+        <thead><tr><th>Job Role</th><th>Total</th><th>Attrited</th><th>Attrition Rate</th><th>Avg Monthly Salary</th><th>Risk Level</th></tr></thead>
+        <tbody>
+          <tr><td>Sales Representative</td><td>83</td><td>33</td><td class="val-red">39.8%</td><td>₹2,626</td><td><span style="background:#fde7e7;color:var(--pbi-red);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">HIGH</span></td></tr>
+          <tr><td>Laboratory Technician</td><td>259</td><td>62</td><td class="val-red">23.9%</td><td>₹3,237</td><td><span style="background:#fde7e7;color:var(--pbi-red);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">HIGH</span></td></tr>
+          <tr><td>Human Resources</td><td>52</td><td>12</td><td class="val-orange">23.1%</td><td>₹4,143</td><td><span style="background:#fff0e5;color:var(--pbi-orange);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">MEDIUM</span></td></tr>
+          <tr><td>Sales Executive</td><td>326</td><td>57</td><td class="val-orange">17.5%</td><td>₹6,924</td><td><span style="background:#fff0e5;color:var(--pbi-orange);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">MEDIUM</span></td></tr>
+          <tr><td>Research Scientist</td><td>292</td><td>47</td><td class="val-orange">16.1%</td><td>₹5,531</td><td><span style="background:#fff0e5;color:var(--pbi-orange);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">MEDIUM</span></td></tr>
+          <tr><td>Healthcare Representative</td><td>131</td><td>9</td><td class="val-green">6.9%</td><td>₹7,528</td><td><span style="background:#e8f5e9;color:var(--pbi-green);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">LOW</span></td></tr>
+          <tr><td>Manufacturing Director</td><td>145</td><td>10</td><td class="val-green">6.9%</td><td>₹7,020</td><td><span style="background:#e8f5e9;color:var(--pbi-green);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">LOW</span></td></tr>
+          <tr><td>Manager</td><td>102</td><td>5</td><td class="val-green">4.9%</td><td>₹17,201</td><td><span style="background:#e8f5e9;color:var(--pbi-green);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">LOW</span></td></tr>
+          <tr><td>Research Director</td><td>80</td><td>2</td><td class="val-green">2.5%</td><td>₹15,947</td><td><span style="background:#e8f5e9;color:var(--pbi-green);padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600">LOW</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════ PAGE 4: KEY INSIGHTS ════════════════════ -->
+  <div class="pbi-page" id="page-insights">
+
+    <div class="risk-summary">
+      <div class="risk-band risk-h">
+        <div class="risk-band-label">🔴 High Risk Factors</div>
+        <div class="risk-band-val">5</div>
+        <div class="risk-band-sub">Factors with >25% attrition rate</div>
+      </div>
+      <div class="risk-band risk-m">
+        <div class="risk-band-label">🟠 Medium Risk Factors</div>
+        <div class="risk-band-val">8</div>
+        <div class="risk-band-sub">Factors with 15–25% attrition rate</div>
+      </div>
+      <div class="risk-band risk-l">
+        <div class="risk-band-label">🟢 Low Risk Factors</div>
+        <div class="risk-band-val">4</div>
+        <div class="risk-band-sub">Factors with <15% attrition rate</div>
+      </div>
+    </div>
+
+    <div class="chart-grid-2" style="margin-bottom:10px">
+      <div class="chart-tile">
+        <div class="chart-tile-title" style="margin-bottom:4px">Retention Rate by Department</div>
+        <div class="chart-tile-subtitle">Column — % of employees who stayed</div>
+        <canvas id="ch_retention" height="240"></canvas>
+      </div>
+      <div class="chart-tile">
+        <div class="chart-tile-title" style="margin-bottom:4px">Salary Distribution — Attrited vs Retained</div>
+        <div class="chart-tile-subtitle">Bar comparison — Low earners leave most</div>
+        <canvas id="ch_salary2" height="240"></canvas>
+      </div>
+    </div>
+
+    <div class="insight-grid">
+      <div class="insight-card">
+        <h4>💡 Critical Findings</h4>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-red)"></div><div>Employees who work <strong>overtime have a 30.5% attrition rate</strong> — nearly 3× the rate of non-overtime employees (10.4%). Reducing mandatory overtime is the single biggest lever for retention.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-red)"></div><div>Employees earning <strong>below ₹3,000/month face 41.2% attrition</strong>. This salary band, mostly Sales Representatives and Lab Technicians, needs urgent compensation review.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-orange)"></div><div><strong>Employees under 25 years old leave at 35.5%</strong> — more than double the company average. Early career engagement programs and mentorship can address this gap.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-orange)"></div><div>The <strong>Sales department (20.6%) and Human Resources (19.0%)</strong> are 30–40% above the company average attrition rate of 16.1%.</div></div>
+      </div>
+      <div class="insight-card">
+        <h4>✅ Recommended HR Actions</h4>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-green)"></div><div><strong>Salary Increment Program:</strong> Prioritize salary increases for the below-₹3K band. A 20% increment could reduce attrition in that group to ~25%, saving ~14 employees per cycle.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-green)"></div><div><strong>Overtime Policy Reform:</strong> Implement a 45-hour weekly cap with mandatory comp-off. Model predicts this reduces high-risk flags by 18%.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-green)"></div><div><strong>Early Tenure Program:</strong> Create a "First 3 Years" accelerated track for under-25 hires with mentorship, fast-track promotion criteria, and quarterly check-ins.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-green)"></div><div><strong>Sales Team Intervention:</strong> Sales Representatives have both the highest attrition (39.8%) and lowest salary (₹2,626). Role redesign + 15% salary hike + commission restructure recommended.</div></div>
+        <div class="insight-item"><div class="insight-dot" style="background:var(--pbi-accent)"></div><div><strong>ML Model Integration:</strong> The Flask ML model identifies high-risk employees proactively. HR should review flagged employees monthly and trigger the above interventions before resignation.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Power BI Footer -->
+<div class="pbi-footer">
+  <span>HR Analytics System — IBM HR Attrition Dataset (1,470 records) · Last refreshed: March 2026</span>
+  <span>Built with Power BI Desktop · Embedded via Flask HR Analytics System</span>
+</div>
+
+<script>
+// ── Page switching ──────────────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.pbi-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pbi-page-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'attrition' && !attritionLoaded) renderAttrition();
+  if (name === 'jobrole'   && !jobroleLoaded)   renderJobRole();
+  if (name === 'insights'  && !insightsLoaded)  renderInsights();
+}
+
+// ── Slicer toggle ──────────────────────────────────────────────────────────
+function toggleSlicer(btn, group, val) {
+  const siblings = btn.parentElement.querySelectorAll('.slicer-chip');
+  siblings.forEach(s => s.classList.remove('on'));
+  btn.classList.add('on');
+}
+
+// ── Dark mode toggle ───────────────────────────────────────────────────────
+let dark = false;
+function toggleDark() {
+  dark = !dark;
+  if (dark) {
+    document.documentElement.style.setProperty('--pbi-bg', '#1b1a19');
+    document.documentElement.style.setProperty('--pbi-canvas', '#1b1a19');
+    document.documentElement.style.setProperty('--pbi-text', '#f3f2f1');
+    document.documentElement.style.setProperty('--pbi-muted', '#a19f9d');
+    document.documentElement.style.setProperty('--pbi-border', '#3b3a39');
+    document.querySelectorAll('.chart-tile,.kpi-tile,.slicer-bar,.matrix-table td,.risk-band,.insight-card,.pbi-pages,.pbi-footer').forEach(el => el.style.background = '#252423');
+    document.querySelectorAll('.matrix-table th').forEach(el => el.style.background = '#323130');
+    document.querySelector('.dark-mode-btn').textContent = '☀️ Light';
+  } else {
+    location.reload();
+  }
+}
+
+// ── Shared chart options ──────────────────────────────────────────────────
+const CF = {
+  responsive: true, maintainAspectRatio: true,
+  plugins: { legend: { labels: { font: { family: "'Segoe UI', sans-serif", size: 11 }, color: '#605e5c' } } },
+  scales: {
+    x: { ticks: { color: '#605e5c', font: { size: 11 } }, grid: { color: '#edebe9' } },
+    y: { ticks: { color: '#605e5c', font: { size: 11 } }, grid: { color: '#edebe9' } }
+  }
+};
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+const DATA = {
+  dept: { labels: ['Sales', 'R&D', 'HR'], total: [446, 961, 63], attrited: [92, 133, 12], rate: [20.63, 13.84, 19.05] },
+  age:  { labels: ['<25', '25-34', '35-44', '45-54', '55+'], total: [62,534,505,274,95], attrited: [22,112,68,28,7], rate: [35.5,21.0,13.5,10.2,7.4] },
+  ot:   { labels: ['Overtime: Yes (30.5%)', 'Overtime: No (10.4%)'], attrited: [127, 110] },
+  sal:  { labels: ['Below ₹3K', '₹3K–6K', '₹6K–10K', 'Above ₹10K'], total: [170,693,396,211], attrited: [70,118,38,11], rate: [41.2,17.0,9.6,5.2] },
+  sat:  { labels: ['1 — Low', '2 — Medium', '3 — High', '4 — Very High'], rate: [22.8, 16.4, 19.5, 8.7] },
+  wlb:  { labels: ['1 — Bad', '2 — Good', '3 — Better', '4 — Best'], rate: [31.3, 17.2, 15.3, 11.9] },
+  role: { labels: ['Sales Rep','Lab Technician','Human Resources','Sales Executive','Research Scientist','Healthcare Rep','Mfg Director','Manager','Research Director'], rate: [39.8,23.9,23.1,17.5,16.1,6.9,6.9,4.9,2.5] }
+};
+
+// ── PAGE 1: OVERVIEW CHARTS (auto-load) ────────────────────────────────────
+function renderOverview() {
+  // Dept clustered bar
+  new Chart(document.getElementById('ch_dept'), {
+    type: 'bar',
+    data: {
+      labels: DATA.dept.labels,
+      datasets: [
+        { label: 'Total', data: DATA.dept.total, backgroundColor: 'rgba(0,120,212,.25)', borderColor: '#0078d4', borderWidth: 1.5, borderRadius: 3 },
+        { label: 'Attrited', data: DATA.dept.attrited, backgroundColor: 'rgba(209,52,56,.6)', borderColor: '#d13438', borderWidth: 1.5, borderRadius: 3 }
+      ]
+    },
+    options: { ...CF, plugins: { ...CF.plugins, tooltip: { callbacks: {
+      afterLabel: ctx => ctx.datasetIndex === 1 ? `Rate: ${DATA.dept.rate[ctx.dataIndex]}%` : ''
+    }}}}
+  });
+
+  // Age column
+  const ageColors = ['#d13438','#ca5010','#0078d4','#107c10','#5c2d91'];
+  new Chart(document.getElementById('ch_age'), {
+    type: 'bar',
+    data: {
+      labels: DATA.age.labels,
+      datasets: [{ label: 'Attrition Rate (%)', data: DATA.age.rate, backgroundColor: ageColors, borderRadius: 3 }]
+    },
+    options: { ...CF, plugins: { ...CF.plugins, legend: { display: false } } }
+  });
+
+  // Overtime donut
+  new Chart(document.getElementById('ch_ot'), {
+    type: 'doughnut',
+    data: {
+      labels: DATA.ot.labels,
+      datasets: [{ data: DATA.ot.attrited, backgroundColor: ['rgba(209,52,56,.75)', 'rgba(0,120,212,.6)'], borderColor: ['#d13438', '#0078d4'], borderWidth: 2 }]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { font: { family: "'Segoe UI'", size: 11 }, color: '#605e5c' } } } }
+  });
+
+  // Salary stacked
+  const stayed = DATA.sal.total.map((t, i) => t - DATA.sal.attrited[i]);
+  new Chart(document.getElementById('ch_salary'), {
+    type: 'bar', indexAxis: 'y',
+    data: {
+      labels: DATA.sal.labels,
+      datasets: [
+        { label: 'Attrited', data: DATA.sal.attrited, backgroundColor: 'rgba(209,52,56,.7)', borderRadius: 2 },
+        { label: 'Retained', data: stayed, backgroundColor: 'rgba(16,124,16,.35)', borderRadius: 2 }
+      ]
+    },
+    options: { ...CF, scales: {
+      x: { stacked: true, ticks: { color: '#605e5c', font: { size: 11 } }, grid: { color: '#edebe9' } },
+      y: { stacked: true, ticks: { color: '#605e5c', font: { size: 11 } }, grid: { color: '#edebe9' } }
+    }}
+  });
+
+  // Overall split donut
+  new Chart(document.getElementById('ch_split'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Attrition: Yes (16.1%)', 'Retained: No (83.9%)'],
+      datasets: [{ data: [237, 1233], backgroundColor: ['rgba(209,52,56,.75)', 'rgba(16,124,16,.5)'], borderColor: ['#d13438', '#107c10'], borderWidth: 2 }]
+    },
+    options: { responsive: true, plugins: { legend: { labels: { font: { family: "'Segoe UI'", size: 11 }, color: '#605e5c' } } } }
+  });
+}
+
+// ── PAGE 2: ATTRITION ANALYSIS ──────────────────────────────────────────────
+let attritionLoaded = false;
+function renderAttrition() {
+  attritionLoaded = true;
+
+  // Satisfaction line
+  new Chart(document.getElementById('ch_sat'), {
+    type: 'line',
+    data: {
+      labels: DATA.sat.labels,
+      datasets: [{ label: 'Attrition Rate (%)', data: DATA.sat.rate, borderColor: '#0078d4', backgroundColor: 'rgba(0,120,212,.08)', borderWidth: 2.5, fill: true, tension: 0.35, pointBackgroundColor: '#0078d4', pointRadius: 5, pointHoverRadius: 7 }]
+    },
+    options: { ...CF }
+  });
+
+  // WLB bar
+  new Chart(document.getElementById('ch_wlb'), {
+    type: 'bar',
+    data: {
+      labels: DATA.wlb.labels,
+      datasets: [{ label: 'Attrition Rate (%)', data: DATA.wlb.rate, backgroundColor: ['rgba(209,52,56,.75)', 'rgba(202,80,16,.7)', 'rgba(0,120,212,.6)', 'rgba(16,124,16,.6)'], borderRadius: 3 }]
+    },
+    options: { ...CF, plugins: { ...CF.plugins, legend: { display: false } } }
+  });
+
+  // Age area duplicate
+  new Chart(document.getElementById('ch_age2'), {
+    type: 'line',
+    data: {
+      labels: DATA.age.labels,
+      datasets: [
+        { label: 'Attrition Rate (%)', data: DATA.age.rate, borderColor: '#d13438', backgroundColor: 'rgba(209,52,56,.1)', borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#d13438', pointRadius: 5 },
+        { label: 'Total Count', data: DATA.age.total, borderColor: '#0078d4', backgroundColor: 'rgba(0,120,212,.05)', borderWidth: 1.5, fill: false, tension: 0.3, pointBackgroundColor: '#0078d4', pointRadius: 4, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { font: { family: "'Segoe UI'", size: 11 }, color: '#605e5c' } } },
+      scales: {
+        x: { ticks: { color: '#605e5c', font: { size: 11 } }, grid: { color: '#edebe9' } },
+        y: { ticks: { color: '#605e5c', font: { size: 11 } }, grid: { color: '#edebe9' }, title: { display: true, text: 'Attrition Rate (%)', color: '#605e5c', font: { size: 10 } } },
+        y2: { type: 'linear', position: 'right', ticks: { color: '#0078d4', font: { size: 11 } }, grid: { display: false }, title: { display: true, text: 'Total Count', color: '#0078d4', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ── PAGE 3: JOB ROLE ────────────────────────────────────────────────────────
+let jobroleLoaded = false;
+function renderJobRole() {
+  jobroleLoaded = true;
+  const colors = DATA.role.rate.map(r => r > 25 ? 'rgba(209,52,56,.75)' : r > 15 ? 'rgba(202,80,16,.7)' : 'rgba(16,124,16,.65)');
+  new Chart(document.getElementById('ch_role'), {
+    type: 'bar', indexAxis: 'y',
+    data: {
+      labels: DATA.role.labels,
+      datasets: [{ label: 'Attrition Rate (%)', data: DATA.role.rate, backgroundColor: colors, borderRadius: 3 }]
+    },
+    options: { ...CF, plugins: { ...CF.plugins, legend: { display: false } } }
+  });
+}
+
+// ── PAGE 4: INSIGHTS ────────────────────────────────────────────────────────
+let insightsLoaded = false;
+function renderInsights() {
+  insightsLoaded = true;
+
+  // Retention bar
+  new Chart(document.getElementById('ch_retention'), {
+    type: 'bar',
+    data: {
+      labels: ['Sales', 'R&D', 'Human Resources'],
+      datasets: [
+        { label: 'Retention Rate (%)', data: [79.37, 86.16, 80.95], backgroundColor: ['rgba(0,120,212,.6)', 'rgba(16,124,16,.6)', 'rgba(202,80,16,.6)'], borderRadius: 3 },
+        { label: 'Attrition Rate (%)', data: [20.63, 13.84, 19.05], backgroundColor: ['rgba(209,52,56,.4)', 'rgba(209,52,56,.4)', 'rgba(209,52,56,.4)'], borderRadius: 3 }
+      ]
+    },
+    options: { ...CF, scales: { x: { stacked: true, ticks: { color: '#605e5c' }, grid: { color: '#edebe9' } }, y: { stacked: true, ticks: { color: '#605e5c' }, grid: { color: '#edebe9' } } } }
+  });
+
+  // Salary comparison
+  new Chart(document.getElementById('ch_salary2'), {
+    type: 'bar',
+    data: {
+      labels: DATA.sal.labels,
+      datasets: [
+        { label: 'Attrition Rate (%)', data: DATA.sal.rate, backgroundColor: DATA.sal.rate.map(r => r > 25 ? 'rgba(209,52,56,.75)' : r > 12 ? 'rgba(202,80,16,.7)' : 'rgba(16,124,16,.65)'), borderRadius: 3 }
+      ]
+    },
+    options: { ...CF, plugins: { ...CF.plugins, legend: { display: false } } }
+  });
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', renderOverview);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — Risk Assessment{% endblock %}
+{% block body %}
+
+<nav class="topnav">
+  <a href="/" class="nav-brand"><span class="logo-icon">⬡</span> HRAnalytics</a>
+  <div class="nav-links">
+    <a href="{{ url_for('employee_dashboard') }}">My Dashboard</a>
+    <a href="{{ url_for('employee_form') }}" class="active">Assessment</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user">{{ session.name }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+  </div>
+</nav>
+
+<main class="form-page-main">
+  <div class="form-page-header">
+    <h1>Attrition Risk Assessment</h1>
+    <p>Complete the questionnaire below. Your responses help HR identify ways to improve your work experience.</p>
+  </div>
+
+  <form method="POST" class="emp-form" id="empForm">
+
+    <!-- Section 1: Personal Info -->
+    <div class="form-section">
+      <div class="section-label">01 — Personal Information</div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" name="age" min="18" max="65" value="30" required>
+        </div>
+        <div class="form-group">
+          <label>Gender</label>
+          <select name="gender">
+            <option>Male</option>
+            <option>Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Marital Status</label>
+          <select name="marital_status">
+            <option>Single</option>
+            <option>Married</option>
+            <option>Divorced</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Education Level <span class="hint">(1=Below College … 5=Doctor)</span></label>
+          <input type="number" name="education" min="1" max="5" value="3">
+        </div>
+        <div class="form-group">
+          <label>Distance From Home (km)</label>
+          <input type="number" name="distance_from_home" min="1" max="100" value="10">
+        </div>
+        <div class="form-group">
+          <label>Number of Companies Worked</label>
+          <input type="number" name="num_companies_worked" min="0" max="20" value="1">
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Job Info -->
+    <div class="form-section">
+      <div class="section-label">02 — Job Details</div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Department</label>
+          <select name="department">
+            <option>Sales</option>
+            <option>Research &amp; Development</option>
+            <option>Human Resources</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Job Role</label>
+          <select name="job_role">
+            <option>Sales Executive</option>
+            <option>Research Scientist</option>
+            <option>Laboratory Technician</option>
+            <option>Manufacturing Director</option>
+            <option>Healthcare Representative</option>
+            <option>Manager</option>
+            <option>Sales Representative</option>
+            <option>Research Director</option>
+            <option>Human Resources</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Job Level <span class="hint">(1–5)</span></label>
+          <input type="number" name="job_level" min="1" max="5" value="2">
+        </div>
+        <div class="form-group">
+          <label>Business Travel</label>
+          <select name="business_travel">
+            <option>Travel_Rarely</option>
+            <option>Travel_Frequently</option>
+            <option>Non-Travel</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Monthly Income (₹)</label>
+          <input type="number" name="monthly_income" min="1000" max="100000" value="5000">
+        </div>
+        <div class="form-group">
+          <label>Percent Salary Hike (%)</label>
+          <input type="number" name="percent_salary_hike" min="0" max="50" value="11">
+        </div>
+        <div class="form-group">
+          <label>Stock Option Level <span class="hint">(0–3)</span></label>
+          <input type="number" name="stock_option_level" min="0" max="3" value="0">
+        </div>
+        <div class="form-group">
+          <label>Performance Rating <span class="hint">(1–4)</span></label>
+          <input type="number" name="performance_rating" min="1" max="4" value="3">
+        </div>
+        <div class="form-group">
+          <label>Works Overtime?</label>
+          <select name="overtime">
+            <option value="No">No</option>
+            <option value="Yes">Yes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: Experience -->
+    <div class="form-section">
+      <div class="section-label">03 — Work Experience</div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label>Total Working Years</label>
+          <input type="number" name="total_working_years" min="0" max="40" value="5">
+        </div>
+        <div class="form-group">
+          <label>Years at Company</label>
+          <input type="number" name="years_at_company" min="0" max="40" value="3">
+        </div>
+        <div class="form-group">
+          <label>Years in Current Role</label>
+          <input type="number" name="years_in_current_role" min="0" max="20" value="2">
+        </div>
+        <div class="form-group">
+          <label>Years Since Last Promotion</label>
+          <input type="number" name="years_since_last_promotion" min="0" max="15" value="1">
+        </div>
+        <div class="form-group">
+          <label>Years with Current Manager</label>
+          <input type="number" name="years_with_curr_manager" min="0" max="20" value="2">
+        </div>
+        <div class="form-group">
+          <label>Training Times Last Year</label>
+          <input type="number" name="training_times_last_year" min="0" max="10" value="2">
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Satisfaction -->
+    <div class="form-section">
+      <div class="section-label">04 — Satisfaction Ratings <span class="hint">(1=Low … 4=Very High)</span></div>
+      <div class="form-grid-2">
+        <div class="form-group slider-group">
+          <label>Job Satisfaction: <span id="js_val">3</span></label>
+          <input type="range" name="job_satisfaction" min="1" max="4" value="3"
+                 oninput="document.getElementById('js_val').textContent=this.value">
+        </div>
+        <div class="form-group slider-group">
+          <label>Work-Life Balance: <span id="wlb_val">3</span></label>
+          <input type="range" name="work_life_balance" min="1" max="4" value="3"
+                 oninput="document.getElementById('wlb_val').textContent=this.value">
+        </div>
+        <div class="form-group slider-group">
+          <label>Environment Satisfaction: <span id="es_val">3</span></label>
+          <input type="range" name="environment_satisfaction" min="1" max="4" value="3"
+                 oninput="document.getElementById('es_val').textContent=this.value">
+        </div>
+        <div class="form-group slider-group">
+          <label>Relationship Satisfaction: <span id="rs_val">3</span></label>
+          <input type="range" name="relationship_satisfaction" min="1" max="4" value="3"
+                 oninput="document.getElementById('rs_val').textContent=this.value">
+        </div>
+        <div class="form-group slider-group">
+          <label>Job Involvement: <span id="ji_val">3</span></label>
+          <input type="range" name="job_involvement" min="1" max="4" value="3"
+                 oninput="document.getElementById('ji_val').textContent=this.value">
+        </div>
+      </div>
+    </div>
+
+    <div class="form-submit-row">
+      <button type="submit" class="btn-primary btn-lg" id="submitBtn">
+        <span class="btn-text">Run Attrition Analysis →</span>
+        <span class="btn-loading" style="display:none">Analyzing…</span>
+      </button>
+    </div>
+  </form>
+</main>
+
+<script>
+  document.getElementById('empForm').addEventListener('submit', function() {
+    document.querySelector('.btn-text').style.display = 'none';
+    document.querySelector('.btn-loading').style.display = 'inline';
+    document.getElementById('submitBtn').disabled = true;
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics — Prediction Result{% endblock %}
+{% block body %}
+
+<nav class="topnav">
+  <a href="/" class="nav-brand"><span class="logo-icon">⬡</span> HRAnalytics</a>
+  <div class="nav-right">
+    <span class="nav-user">{{ session.name }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-ghost">Logout</a>
+  </div>
+</nav>
+
+<main class="result-main">
+  <div class="result-card risk-{{ result.risk_level|lower }}-card">
+
+    <div class="result-header">
+      <div class="result-icon">
+        {% if result.prediction == 'Yes' %}⚠{% else %}✅{% endif %}
+      </div>
+      <div class="result-title">
+        <h1>Attrition Prediction: <strong>{{ result.prediction }}</strong></h1>
+        <p style="margin-top:.4rem">
+          Risk Level:
+          <span class="risk-badge risk-{{ result.risk_level|lower }}">{{ result.risk_level }}</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Probability Bar -->
+    <div class="prob-section">
+      <div class="prob-label">Probability of Leaving the Company</div>
+      <div class="prob-bar-wrap">
+        <div class="prob-bar" id="probBar" style="width:0%"></div>
+      </div>
+      <div class="prob-value">{{ result.probability }}%</div>
+    </div>
+
+    <!-- HR Insights -->
+    <div class="insights-section">
+      <h3>HR Recommendations</h3>
+      <ul class="insights-list">
+        {% for insight in result.insights %}
+          <li>{{ insight }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Profile Summary -->
+    <div class="data-summary">
+      <h3>Submitted Profile</h3>
+      <div class="data-grid">
+        <div class="data-item"><span>Age</span><strong>{{ data.Age }}</strong></div>
+        <div class="data-item"><span>Department</span><strong>{{ data.Department }}</strong></div>
+        <div class="data-item"><span>Monthly Income</span><strong>₹{{ data.MonthlyIncome|int }}</strong></div>
+        <div class="data-item"><span>Years at Company</span><strong>{{ data.YearsAtCompany }}</strong></div>
+        <div class="data-item"><span>Overtime</span><strong>{{ data.OverTime }}</strong></div>
+        <div class="data-item"><span>Job Satisfaction</span><strong>{{ data.JobSatisfaction }}/4</strong></div>
+        <div class="data-item"><span>Work-Life Balance</span><strong>{{ data.WorkLifeBalance }}/4</strong></div>
+        <div class="data-item"><span>Last Promotion</span><strong>{{ data.YearsSinceLastPromotion }} yr ago</strong></div>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <a href="{{ url_for('employee_form') }}" class="btn-ghost">Re-assess</a>
+      <a href="{{ url_for('employee_dashboard') }}" class="btn-primary">My Dashboard →</a>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  window.addEventListener('load', () => {
+    const bar = document.getElementById('probBar');
+    const val = {{ result.probability }};
+    setTimeout(() => {
+      bar.style.transition = 'width 1.4s cubic-bezier(.4,0,.2,1)';
+      bar.style.width = val + '%';
+    }, 200);
+  });
+</script>
+{% endblock %}
